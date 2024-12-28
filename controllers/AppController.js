@@ -29,7 +29,7 @@ export default class AppController {
   static async getStats(req, res) {
     await waitConnection;
     const filesStats = await dbClient.nbFiles();
-    const usersStats = await dbClient.nbFiles();
+    const usersStats = await dbClient.nbUsers();
     res.status(200).send({ users: usersStats, files: filesStats });
   }
 }
