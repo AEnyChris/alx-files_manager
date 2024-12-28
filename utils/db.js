@@ -24,14 +24,22 @@ class DBClient {
     return filesCollection.countDocuments({}, { hint: '_id_' });
   }
 
-  async userExists(email) {
-    const usersCollection = this.client.db().collection('users');
-    const serRes = await usersCollection.findOne({ email });
-    // console.log('This is search result:', serRes);
-    if (serRes) {
-      return true;
+  async getUser(...args) {
+    const query = {};
+    const params = args.slice(0, 2);
+    if (params.length === 1) {
+      const [email] = params;
+      query.email = email;
+    } else {
+      const [email, password] = params;
+      query.email = email;
+      query.password = password;
     }
-    return false;
+    // console.log(query)
+    const usersCollection = this.client.db().collection('users');
+    const serRes = await usersCollection.findOne(query);
+    // console.log('This is search result:', serRes);
+    return serRes;
   }
 
   addDoc(doc) {
