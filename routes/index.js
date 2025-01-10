@@ -34,4 +34,8 @@ router.post('/files', (req, res) => {
   FilesController.postUpload(req, res);
 });
 
+router.get('/files', (req, res) => {
+  FilesController.getShow(req, res);
+});
+
 export default router;

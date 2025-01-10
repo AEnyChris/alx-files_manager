@@ -27,6 +27,18 @@ export default class FilesController {
       // VALIDATE DATA COLLECTED AND SAVE ACCORDINGLY
       if (name) {
         if (type && filetype.includes(type)) {
+          // Validate parentId
+          if (parentId !== 0) {
+            const parent = await dbClient.client.db().collection('files').findOne({ _id: ObjectId(parentId) });
+            // console.log(parent)
+            if (!parent) {
+              res.status(400).send({ error: 'Parent not found' });
+              return;
+            } if (parent.type !== 'folder') {
+              res.status(400).send({ error: 'Parent is not a folder' });
+              return;
+            }
+          }
           // if type is 'folder' create document and save to database
           if (type === 'folder') {
             const doc = {
@@ -51,20 +63,7 @@ export default class FilesController {
             // console.log('checking data');
             const { data } = req.body;
             if (data) {
-              // If data is present, chek if parent doc is present and is of type folder
-              // console.log('data confirmed, checking parent');
-              if (parentId !== 0) {
-                const parent = await dbClient.client.db().collection('files').findOne({ _id: ObjectId(parentId) });
-                // console.log(parent)
-                if (!parent) {
-                  res.status(400).send({ error: 'Parent not found' });
-                  return;
-                } if (parent.type !== 'folder') {
-                  res.status(400).send({ error: 'Parent is not a folder' });
-                  return;
-                }
-              }
-              // if parent is present and is of type folder,
+              // if data is present,
               // check if FOLDER_PATH exists else create it
               // console.log('parent confirmed, checking folder path');
               if (!fs.existsSync(FOLDER_PATH)) {
