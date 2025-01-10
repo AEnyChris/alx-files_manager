@@ -2,6 +2,7 @@ import { Router } from 'express';
 import AppController from '../controllers/AppController';
 import UsersController from '../controllers/UsersController';
 import AuthController from '../controllers/AuthController';
+import FilesController from '../controllers/FilesController';
 
 const router = Router({ mergeParams: true });
 
@@ -27,6 +28,10 @@ router.get('/users/me', (req, res) => {
 
 router.post('/users', (req, res) => {
   UsersController.postNew(req, res);
+});
+
+router.post('/files', (req, res) => {
+  FilesController.postUpload(req, res);
 });
 
 export default router;

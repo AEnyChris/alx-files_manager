@@ -42,6 +42,12 @@ class DBClient {
     return serRes;
   }
 
+  async getFile(parentId) {
+    const filesCollection = this.client.db().collection('files');
+    const serRes = await filesCollection.find({ parentId });
+    return serRes;
+  }
+
   addDoc(doc) {
     const res = this.client.db().collection('users').insertOne(doc);
     return res;
