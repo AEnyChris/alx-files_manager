@@ -22,7 +22,6 @@ export default class FilesController {
       const parentId = req.body.parentId || 0;
       const isPublic = req.body.isPublic || false;
       const FOLDER_PATH = process.env.FOLDER_PATH || '/tmp/files_manager';
-      // console.log(`This is the folder path: ${FOLDER_PATH}`);
 
       // VALIDATE DATA COLLECTED AND SAVE ACCORDINGLY
       if (name) {
@@ -30,7 +29,6 @@ export default class FilesController {
           // Validate parentId
           if (parentId !== 0) {
             const parent = await dbClient.client.db().collection('files').findOne({ _id: ObjectId(parentId) });
-            // console.log(parent)
             if (!parent) {
               res.status(400).send({ error: 'Parent not found' });
               return;
@@ -60,28 +58,24 @@ export default class FilesController {
             res.status(201).send(fileDetails);
           } else {
             // if type is not 'folder' collect and check if data is present
-            // console.log('checking data');
             const { data } = req.body;
             if (data) {
               // if data is present,
               // check if FOLDER_PATH exists else create it
-              // console.log('parent confirmed, checking folder path');
               if (!fs.existsSync(FOLDER_PATH)) {
                 fs.mkdirSync(FOLDER_PATH, { recursive: true });
               }
 
-              // console.log('folder path confirmed, writing data to file');
               // Write data to file and save to FOLDER_PATH
               const filePath = path.join(FOLDER_PATH, uuidv4());
               fs.writeFileSync(filePath, Buffer.from(data, 'base64'));
 
               // Save file data to database
-              // console.log('writing file data to database');
               const doc = {
                 name,
                 userId: user._id,
                 type,
-                parentId,
+                parentId: parentId !== 0 ? ObjectId(parentId) : 0,
                 isPublic,
                 localpath: filePath,
               };
@@ -94,8 +88,6 @@ export default class FilesController {
                 isPublic: insRes.ops[0].isPublic,
                 parentId: insRes.ops[0].parentId,
               };
-              // console.log('file data written to database');
-              // console.log('Done')
               res.status(201).send(fileDetails);
             } else {
               res.status(400).send({ error: 'Missing data' });
@@ -107,6 +99,68 @@ export default class FilesController {
       } else {
         res.status(400).send({ error: 'Missing name' });
       }
+    }
+  }
+
+  static async getShow(req, res) {
+    const xToken = req.headers['x-token'];
+    const userId = await redisClient.get(`auth_${xToken}`);
+    const user = await dbClient.client.db().collection('users').findOne({ _id: ObjectId(userId) });
+    if (!user) {
+      res.status(401).send({ error: 'Unauthorized' });
+    } else {
+      const query = { userId: ObjectId(user._id), _id: ObjectId(req.params.id) };
+      const file = await dbClient.client.db().collection('files').findOne(query);
+      if (!file) {
+        res.status(404).send({ error: 'Not found' });
+      } else {
+        const fileDetails = {
+          id: file._id,
+          userId: file.userId,
+          name: file.name,
+          type: file.type,
+          isPublic: file.isPublic,
+          parentId: file.parentId,
+        };
+        res.status(200).send(fileDetails);
+      }
+    }
+  }
+
+  static async getIndex(req, res) {
+    const xToken = req.headers['x-token'];
+    const userId = await redisClient.get(`auth_${xToken}`);
+    const user = await dbClient.client.db().collection('users').findOne({ _id: ObjectId(userId) });
+    if (!user) {
+      res.status(401).send({ error: 'Unauthorized' });
+    } else {
+      const parentId = req.query.parentId || 0;
+      const page = parseInt(req.query.page, 10) || 0;
+      const pageSize = 20;
+      const skip = page * pageSize;
+
+      const query = {
+        userId: ObjectId(user._id),
+        parentId: parentId !== 0 ? ObjectId(parentId) : 0,
+      };
+      // console.log('query\n');
+      // console.log(query);
+      const files = await dbClient.client.db().collection('files').find(query).skip(skip)
+        .limit(pageSize)
+        .toArray();
+      const filesDetails = [];
+      files.forEach((doc) => {
+        filesDetails.push({
+          id: doc._id,
+          userId: doc.userId,
+          name: doc.name,
+          type: doc.type,
+          isPublic: doc.isPublic,
+          parentId: doc.parentId,
+        });
+      });
+
+      res.status(200).send(filesDetails);
     }
   }
 }

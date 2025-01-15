@@ -19,7 +19,6 @@ export default class AuthController {
       // Generate a random UUID (token)
       const token = uuidv4();
       await redisClient.set(`auth_${token}`, user._id.toString(), 3600);
-      console.log(user._id);
       res.send({ token });
     }
   }
